@@ -186,10 +186,8 @@ class TourismMonteCarloSimulator:
             else:
                 self.revenue_volatility[quarter] = 0.08
         
-        # ❌ ᲤᲘᲥᲡᲘᲠᲔᲑᲐ: დანახარჯების ცვალებადობის ემპირიული გამოთვლა
         self._calculate_expenditure_volatility()
         
-        # ❌ ᲤᲘᲥᲡᲘᲠᲔᲑᲐ: კლიმატური/გარემოს ცვალებადობის ემპირიული გამოთვლა
         self._calculate_climate_volatility()
     
     def _calculate_expenditure_volatility(self):
@@ -329,12 +327,10 @@ class TourismMonteCarloSimulator:
                 growth_factor = (1 + stochastic_growth) ** t_years
                 visitor_shock = sign * z_n * sigma_n
                 
-                # ❌ ᲤᲘᲥᲡᲘᲠᲔᲑᲐ: კლიმატური/გარემოს ფაქტორის დამატება
                 climate_shock = self.rng.normal(0, self.climate_volatility[quarter])
                 N_t = N_base * growth_factor * S_q * np.exp(visitor_shock + climate_shock) * M_s
                 
                 # დანახარჯი ერთ ვიზიტორზე (ფორმულა 5.3)
-                # ❌ ᲤᲘᲥᲡᲘᲠᲔᲑᲐ: ემპირიული დანახარჯების ცვალებადობა
                 sigma_e = self.expenditure_volatility[quarter]
                 expenditure_shock = sign * z_e * sigma_e
                 E_t = E_base * (1 + beta_s * (S_q - 1)) * (1 + expenditure_shock)
@@ -431,7 +427,7 @@ class TourismMonteCarloSimulator:
     
     def simulate_random_scenario_sampling(self, year: int, quarter: str, n_simulations: int = 10000) -> Dict:
         """
-        🎲 შემდებარე სცენარიო მოდელირება - იტერაციულად შემთხვევითი სცენარიოების არჩევა
+        🎲 მოდელირება - იტერაციულად შემთხვევითი სცენარიოების არჩევა
         უკეთესია რეალურ პირობებში გადაწყვეტილების მიღებისთვის
         """
         
