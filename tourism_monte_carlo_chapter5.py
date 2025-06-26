@@ -686,12 +686,11 @@ def main():
     print("    ტურიზმის შემოსავლების პროგნოზი 2025")
     print("=" * 60)
     
-    # ემპირიული პარამეტრები
-    print(f"\nემპირიული პარამეტრები:")
+
     for quarter in quarters:
         exp_vol = simulator.expenditure_volatility[quarter] * 100
         climate_vol = simulator.climate_volatility[quarter] * 100
-        print(f"  {quarter} კვარტალი: დანახარჯების ცვალებადობა={exp_vol:.1f}%, კლიმატური ცვალებადობა={climate_vol:.1f}%")
+       
     
     # საბოლოო შედეგები
     total_expected = 0
