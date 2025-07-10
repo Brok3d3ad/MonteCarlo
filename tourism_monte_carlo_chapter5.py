@@ -104,7 +104,7 @@ class TourismMonteCarloSimulator:
                 if not visitor_data.empty and not exp_data.empty:
                     visitors = visitor_data['Total'].iloc[0]  # ათასებში
                     total_exp = exp_data['Total expenditure'].iloc[0]  # მილიონებში
-                    exp_per_visitor = (total_exp * 1000) / visitors  # ლარები ერთ ვიზიტორზე
+                    exp_per_visitor = (total_exp * 1000000) / (visitors * 1000)  # ლარები ერთ ვიზიტორზე
                     base_exp_data.append(exp_per_visitor)
             
             self.base_expenditure[quarter] = np.mean(base_exp_data) if base_exp_data else 1000
@@ -186,10 +186,7 @@ class TourismMonteCarloSimulator:
             else:
                 self.revenue_volatility[quarter] = 0.08
         
-        # ❌ ᲤᲘᲥᲡᲘᲠᲔᲑᲐ: დანახარჯების ცვალებადობის ემპირიული გამოთვლა
         self._calculate_expenditure_volatility()
-        
-        # ❌ ᲤᲘᲥᲡᲘᲠᲔᲑᲐ: კლიმატური/გარემოს ცვალებადობის ემპირიული გამოთვლა
         self._calculate_climate_volatility()
     
     def _calculate_expenditure_volatility(self):
@@ -210,7 +207,7 @@ class TourismMonteCarloSimulator:
                     total_exp = exp_data['Total expenditure'].iloc[0]  # მილიონებში
                     
                     if visitors > 0:
-                        exp_per_visitor = (total_exp * 1000) / visitors  # ლარები ერთ ვიზიტორზე
+                        exp_per_visitor = (total_exp * 1000000) / (visitors * 1000)  # ლარები ერთ ვიზიტორზე
                         expenditures_per_visitor.append(exp_per_visitor)
             
             if len(expenditures_per_visitor) > 1:
@@ -329,19 +326,17 @@ class TourismMonteCarloSimulator:
                 growth_factor = (1 + stochastic_growth) ** t_years
                 visitor_shock = sign * z_n * sigma_n
                 
-                # ❌ ᲤᲘᲥᲡᲘᲠᲔᲑᲐ: კლიმატური/გარემოს ფაქტორის დამატება
                 climate_shock = self.rng.normal(0, self.climate_volatility[quarter])
                 N_t = N_base * growth_factor * S_q * np.exp(visitor_shock + climate_shock) * M_s
                 
                 # დანახარჯი ერთ ვიზიტორზე (ფორმულა 5.3)
-                # ❌ ᲤᲘᲥᲡᲘᲠᲔᲑᲐ: ემპირიული დანახარჯების ცვალებადობა
                 sigma_e = self.expenditure_volatility[quarter]
                 expenditure_shock = sign * z_e * sigma_e
                 E_t = E_base * (1 + beta_s * (S_q - 1)) * (1 + expenditure_shock)
                 
                 # მთლიანი შემოსავალი (ფორმულა 5.1)
                 revenue_shock = sign * z_r * sigma_r
-                R_t = N_t * E_t * (1 + revenue_shock)
+                R_t = N_t * E_t * (1 + revenue_shock) / 1000  # გადაყვანა მილიონებში
                 
                 revenues.append(R_t)
                 visitors_list.append(N_t)
@@ -431,7 +426,7 @@ class TourismMonteCarloSimulator:
     
     def simulate_random_scenario_sampling(self, year: int, quarter: str, n_simulations: int = 10000) -> Dict:
         """
-        🎲 შემდებარე სცენარიო მოდელირება - იტერაციულად შემთხვევითი სცენარიოების არჩევა
+        შემდებარე სცენარიო მოდელირება - იტერაციულად შემთხვევითი სცენარიოების არჩევა
         უკეთესია რეალურ პირობებში გადაწყვეტილების მიღებისთვის
         """
         
@@ -494,7 +489,7 @@ class TourismMonteCarloSimulator:
             
             # ანტითეტური წყვილები
             for sign in [1, -1]:
-                # 🎲 შემთხვევითი სცენარიოს არჩევა ამ იტერაციისთვის
+                # შემთხვევითი სცენარიოს არჩევა ამ იტერაციისთვის
                 scenario_rand = self.rng.next_uniform()
                 selected_scenario = None
                 
@@ -531,7 +526,7 @@ class TourismMonteCarloSimulator:
                 
                 # მთლიანი შემოსავალი (ფორმულა 5.1)
                 revenue_shock = sign * z_r * self.revenue_volatility[quarter]
-                R_t = N_t * E_t * (1 + revenue_shock)
+                R_t = N_t * E_t * (1 + revenue_shock) / 1000  # გადაყვანა მილიონებში
                 
                 revenues.append(R_t)
                 visitors_list.append(N_t)
@@ -563,7 +558,7 @@ class TourismMonteCarloSimulator:
     
     def simulate_multi_scenario_analysis(self, year: int, quarter: str, n_simulations: int = 10000) -> Dict:
         """
-        📊 ძველი მეთოდი: სცენარიების ცალკე ანალიზი (შედარებისთვის)
+        სცენარიების ცალკე ანალიზი შედარებისთვის
         """
 
         
@@ -641,7 +636,8 @@ def main():
     
     for quarter in quarters:
         # შემთხვევითი სცენარიო მოდელირება
-        random_scenario_results = simulator.simulate_random_scenario_sampling(2025, quarter, 100000)
+        simulation_number = 100000
+        random_scenario_results = simulator.simulate_random_scenario_sampling(2025, quarter, simulation_number)
         
         # სიზუსტის მეტრიკები
         random_accuracy = {
@@ -707,17 +703,17 @@ def main():
         total_expected += results['mean_revenue']
         
         print(f"\n{quarter} კვარტალი (2025):")
-        print(f"  შემოსავალი: {results['mean_revenue']:,.0f} ლარი")
-        print(f"  ნდობის ინტერვალი (95%): {results['confidence_interval_95'][0]:,.0f} - {results['confidence_interval_95'][1]:,.0f} ლარი")
+        print(f"  შემოსავალი: {results['mean_revenue']:,.0f} მილიონი ლარი")
+        print(f"  ნდობის ინტერვალი (95%): {results['confidence_interval_95'][0]:,.0f} - {results['confidence_interval_95'][1]:,.0f} მილიონი ლარი")
         print(f"  ვიზიტორები: {results['mean_visitors']:,.0f} ათასი")
         print(f"  Monte Carlo შეცდომა: {accuracy['relative_error']:.2%}")
     
-    print(f"\nსრული შემოსავალი (III+IV კვარტალები): {total_expected:,.0f} ლარი")
+    print(f"\nსრული შემოსავალი (III+IV კვარტალები): {total_expected:,.0f} მილიონი ლარი")
     
     print(f"\nმეთოდოლოგია:")
     print(f"• ემპირიული პარამეტრები (2014-2024, COVID გამორიცხული)")
     print(f"• შემთხვევითი სცენარიო მოდელირება (60% ბაზისური, 20% ოპტიმისტური, 20% პესიმისტური)")
-    print(f"• 100,000 Monte Carlo იტერაცია")
+    print(f"• {simulation_number} Monte Carlo იტერაცია")
     print(f"• შედეგები: monte_carlo_predictions_2025.csv")
     print("=" * 60)
 
